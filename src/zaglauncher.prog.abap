@@ -136,7 +136,6 @@ ENDCLASS.
 
 CLASS source_reader_impl IMPLEMENTATION.
   METHOD source_reader~read_report.
-    " TODO: This currently is the performance bottleneck by far.
     READ REPORT program_name
          STATE 'A'
          INTO result.
@@ -182,14 +181,19 @@ CLASS version_analyzer_impl DEFINITION.
     METHODS constructor IMPORTING source_reader TYPE REF TO source_reader.
 
   PRIVATE SECTION.
-    CONSTANTS abapgit_version_constant TYPE string VALUE 'ZIF_ABAPGIT_VERSION=>C_ABAP_VERSION'.
-    CONSTANTS abapmerge_marker_pattern TYPE string VALUE '*lif_abapmerge_marker*'.
+    CONSTANTS abapgit_version_constant     TYPE string VALUE 'ZIF_ABAPGIT_VERSION=>C_ABAP_VERSION'.
+    CONSTANTS abapmerge_timestamp_constant TYPE string VALUE 'LIF_ABAPMERGE_MARKER=>C_MERGE_TIMESTAMP'.
+    CONSTANTS abapmerge_marker_pattern     TYPE string VALUE '*lif_abapmerge_marker*'.
 
     DATA source_reader TYPE REF TO source_reader.
 
     METHODS get_version_by_identifier IMPORTING absolute_identifier TYPE csequence
                                       RETURNING VALUE(result)       TYPE string
                                       RAISING   version_analyzer_error.
+
+    METHODS get_data_obj_value_by_name IMPORTING absolute_identifier TYPE csequence
+                                       CHANGING  !value              TYPE data
+                                       RAISING   version_analyzer_error.
 ENDCLASS.
 
 
@@ -207,45 +211,78 @@ CLASS version_analyzer_impl IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_version_by_identifier.
-    FIELD-SYMBOLS <version> TYPE string.
+    get_data_obj_value_by_name( EXPORTING absolute_identifier = absolute_identifier
+                                CHANGING  value               = result ).
+  ENDMETHOD.
 
-    ASSIGN (absolute_identifier) TO <version>.
-    IF sy-subrc = 0.
-      result = <version>.
-    ELSE.
-      RAISE EXCEPTION TYPE version_analyzer_error.
-    ENDIF.
+  METHOD get_data_obj_value_by_name.
+    FIELD-SYMBOLS <data_object> TYPE data.
+
+    TRY.
+        ASSIGN (absolute_identifier) TO <data_object>.
+        IF sy-subrc = 0.
+          value = EXACT #( <data_object> ).
+        ELSE.
+          RAISE EXCEPTION TYPE version_analyzer_error.
+        ENDIF.
+      CATCH cx_sy_conversion_error INTO DATA(conversion_error).
+        RAISE EXCEPTION TYPE version_analyzer_error
+          EXPORTING previous = conversion_error.
+    ENDTRY.
   ENDMETHOD.
 
   METHOD version_analyzer~get_abapmerge_timestamp.
-    TRY.
-        DATA(source) = source_reader->read_report( program_name ).
-        DATA(start_position) = nmax( val1 = lines( source ) - 5 val2 = 1 ).
+    DO 2 TIMES.
+      DATA(current_try) = sy-index.
 
-        LOOP AT source ASSIGNING FIELD-SYMBOL(<line>) FROM start_position WHERE table_line IS NOT INITIAL.
-          DATA(line_number) = sy-tabix.
+      CASE current_try.
+        WHEN 1.
+          " First try finding constants in the marker interface
+          TRY.
+              " Force load the program
+              PERFORM %_init-move IN PROGRAM (program_name).
 
-          IF to_lower( <line> ) CP abapmerge_marker_pattern.
-            result = source[ line_number + 1 ].
-            SPLIT result AT '-' INTO DATA(dummy) result ##NEEDED.
-            CONDENSE result.
-            IF result IS INITIAL.
-              RAISE EXCEPTION TYPE version_analyzer_error.
-            ELSEIF result NP '++++-++-++T*'.
-              RAISE EXCEPTION TYPE version_analyzer_error.
-            ENDIF.
-            EXIT.
-          ENDIF.
-        ENDLOOP.
+              get_data_obj_value_by_name(
+                EXPORTING absolute_identifier = |\\PROGRAM={ program_name }\\INTERFACE={ abapmerge_timestamp_constant }|
+                CHANGING  value               = result ).
 
-        IF result IS INITIAL.
-          RAISE EXCEPTION TYPE version_analyzer_error.
-        ENDIF.
+            CATCH cx_sy_dyn_call_illegal_form
+                  cx_sy_program_not_found
+                  version_analyzer_error.
+              CLEAR result.
+          ENDTRY.
 
-      CATCH source_not_available INTO DATA(source_not_available).
-        RAISE EXCEPTION TYPE version_analyzer_error
-          EXPORTING previous = source_not_available.
-    ENDTRY.
+        WHEN 2.
+          " Fallback to READ REPORT which is considerably slower
+          TRY.
+              DATA(source) = source_reader->read_report( program_name ).
+              DATA(start_position) = nmax( val1 = lines( source ) - 5 val2 = 1 ).
+
+              LOOP AT source ASSIGNING FIELD-SYMBOL(<line>) FROM start_position WHERE table_line IS NOT INITIAL.
+                DATA(line_number) = sy-tabix.
+
+                IF to_lower( <line> ) CP abapmerge_marker_pattern.
+                  result = source[ line_number + 1 ].
+                  SPLIT result AT '-' INTO DATA(dummy) result ##NEEDED.
+                  CONDENSE result.
+                  EXIT.
+                ENDIF.
+              ENDLOOP.
+
+            CATCH source_not_available INTO DATA(source_not_available).
+              RAISE EXCEPTION TYPE version_analyzer_error
+                EXPORTING previous = source_not_available.
+          ENDTRY.
+      ENDCASE.
+
+      IF result IS NOT INITIAL AND result CP '++++-++-++T*'.
+        RETURN.
+      ELSEIF current_try >= 2.
+        RAISE EXCEPTION TYPE version_analyzer_error.
+      ENDIF.
+
+      CLEAR result.
+    ENDDO.
   ENDMETHOD.
 
   METHOD version_analyzer~get_dev_version_admin_data.
@@ -403,7 +440,7 @@ CLASS main IMPLEMENTATION.
     TYPES: BEGIN OF column_position,
              column_name TYPE lvc_fname,
              position    TYPE i,
-           END OF column_POSITION.
+           END OF column_position.
     DATA column_positions      TYPE STANDARD TABLE OF column_position WITH KEY position.
     DATA last_launched_version TYPE progname.
 
