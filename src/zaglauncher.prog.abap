@@ -358,7 +358,8 @@ CLASS main IMPLEMENTATION.
               <version>-deserialized_by        = dev_version_admin_data-deserialized_by.
               <version>-last_updated_by        = <version>-deserialized_by.
               TRY.
-                  <version>-deserialized_date = time_date_util=>parse_date_from_abapgit_ts( dev_version_admin_data-deserialized_at ).
+                  <version>-deserialized_date = time_date_util=>parse_date_from_abapgit_ts(
+                                                    dev_version_admin_data-deserialized_at ).
                   <version>-last_updated_on   = <version>-deserialized_date.
                 CATCH time_date_error ##NO_HANDLER.
               ENDTRY.
@@ -383,7 +384,8 @@ CLASS main IMPLEMENTATION.
           TRY.
               <version>-abapmerge_timestamp = version_analyzer->get_abapmerge_timestamp( <version>-program_name ).
               TRY.
-                  <version>-abapmerge_date = time_date_util=>parse_date_from_abapmerge_ts( <version>-abapmerge_timestamp ).
+                  <version>-abapmerge_date  = time_date_util=>parse_date_from_abapmerge_ts(
+                                                  <version>-abapmerge_timestamp ).
                   <version>-last_updated_on = <version>-abapmerge_date.
                 CATCH time_date_error ##NO_HANDLER.
               ENDTRY.
