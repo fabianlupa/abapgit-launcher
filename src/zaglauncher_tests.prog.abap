@@ -149,11 +149,11 @@ ENDCLASS.
 CLASS version_analyzer_timestmp_test IMPLEMENTATION.
   METHOD valid_timestamp.
     given_the_progam_name( dummy_program_name ).
-    given_the_source( VALUE #( ( |  " --------------------------------------------------- | )
-                               ( |  INTERFACE lif_abapmerge_marker. | )
-                               ( |    " abapmerge 0.15.0 - 2023-05-14T07:07:11.781Z | )
-                               ( |  ENDINTERFACE. | )
-                               ( |  " --------------------------------------------------- | ) ) ).
+    given_the_source( VALUE #( ( |****************************************************| )
+                               ( |INTERFACE lif_abapmerge_marker. | )
+                               ( |* abapmerge 0.15.0 - 2023-05-14T07:07:11.781Z | )
+                               ( |ENDINTERFACE. | )
+                               ( |****************************************************| ) ) ).
 
     when_parse_requested( ).
 
@@ -165,11 +165,11 @@ CLASS version_analyzer_timestmp_test IMPLEMENTATION.
     DATA no_previous_exeption TYPE REF TO cx_root.
 
     given_the_progam_name( dummy_program_name ).
-    given_the_source( VALUE #( ( |  " --------------------------------------------------- | )
-                               ( |  INTERFACE lif_abapmerge_marker. | )
-                               ( |    " abapmerge 0.15.0 | )
-                               ( |  ENDINTERFACE. | )
-                               ( |  " --------------------------------------------------- | ) ) ).
+    given_the_source( VALUE #( ( |****************************************************| )
+                               ( |INTERFACE lif_abapmerge_marker. | )
+                               ( |* abapmerge 0.15.0 | )
+                               ( |ENDINTERFACE. | )
+                               ( |****************************************************| ) ) ).
 
     when_parse_requested( ).
 
@@ -181,11 +181,11 @@ CLASS version_analyzer_timestmp_test IMPLEMENTATION.
     DATA no_previous_exeption TYPE REF TO cx_root.
 
     given_the_progam_name( dummy_program_name ).
-    given_the_source( VALUE #( ( |  " --------------------------------------------------- | )
-                               ( |  INTERFACE lif_abapmerge_marker. | )
-                               ( |    " abapmerge 0.15.0 - 14th of March 2023 at seven am my timezone | )
-                               ( |  ENDINTERFACE. | )
-                               ( |  " --------------------------------------------------- | ) ) ).
+    given_the_source( VALUE #( ( |****************************************************| )
+                               ( |INTERFACE lif_abapmerge_marker. | )
+                               ( |* abapmerge 0.15.0 - 14th of March 2023 at seven am my timezone | )
+                               ( |ENDINTERFACE. | )
+                               ( |****************************************************| ) ) ).
 
     when_parse_requested( ).
 
@@ -208,30 +208,30 @@ CLASS version_analyzer_timestmp_test IMPLEMENTATION.
     DATA no_previous_exeption TYPE REF TO cx_root.
 
     given_the_progam_name( dummy_program_name ).
-    given_the_source( VALUE #( ( | " ---------------------------------------------------------------------| )
-                               ( | INITIALIZATION.| )
-                               ( |   PERFORM adjust_toolbar USING '1001'.| )
-                               ( |   lcl_password_dialog=>on_screen_init( ).| )
-                               ( | | )
-                               ( | START-OF-SELECTION.| )
-                               ( |   PERFORM run.| )
-                               ( | | )
-                               ( |   " Hide Execute button from screen| )
-                               ( | AT SELECTION-SCREEN OUTPUT.| )
-                               ( |   IF sy-dynnr = lcl_password_dialog=>c_dynnr.| )
-                               ( |     lcl_password_dialog=>on_screen_output( ).| )
-                               ( |   ELSE.| )
-                               ( |     PERFORM output.| )
-                               ( |   ENDIF.| )
-                               ( | | )
-                               ( |   " SAP back command re-direction| )
-                               ( | AT SELECTION-SCREEN ON EXIT-COMMAND.| )
-                               ( |   PERFORM exit.| )
-                               ( | | )
-                               ( | AT SELECTION-SCREEN.| )
-                               ( |   IF sy-dynnr = lcl_password_dialog=>c_dynnr.| )
-                               ( |     lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).| )
-                               ( |   ENDIF.| ) ) ).
+    given_the_source( VALUE #( ( |**********************************************************************| )
+                               ( |INITIALIZATION.| )
+                               ( |  PERFORM adjust_toolbar USING '1001'.| )
+                               ( |  lcl_password_dialog=>on_screen_init( ).| )
+                               ( || )
+                               ( |START-OF-SELECTION.| )
+                               ( |  PERFORM run.| )
+                               ( || )
+                               ( |  " Hide Execute button from screen| )
+                               ( |AT SELECTION-SCREEN OUTPUT.| )
+                               ( |  IF sy-dynnr = lcl_password_dialog=>c_dynnr.| )
+                               ( |    lcl_password_dialog=>on_screen_output( ).| )
+                               ( |  ELSE.| )
+                               ( |    PERFORM output.| )
+                               ( |  ENDIF.| )
+                               ( || )
+                               ( |  " SAP back command re-direction| )
+                               ( |AT SELECTION-SCREEN ON EXIT-COMMAND.| )
+                               ( |  PERFORM exit.| )
+                               ( || )
+                               ( |AT SELECTION-SCREEN.| )
+                               ( |  IF sy-dynnr = lcl_password_dialog=>c_dynnr.| )
+                               ( |    lcl_password_dialog=>on_screen_event( sscrfields-ucomm ).| )
+                               ( |  ENDIF.| ) ) ).
 
     when_parse_requested( ).
 
@@ -243,10 +243,10 @@ CLASS version_analyzer_timestmp_test IMPLEMENTATION.
     DATA no_previous_exeption TYPE REF TO cx_root.
 
     given_the_progam_name( dummy_program_name ).
-    given_the_source( VALUE #( ( |  " --------------------------------------------------- | )
-                               ( |  INTERFACE lif_abapmerge_marker. | )
-                               ( |  ENDINTERFACE. | )
-                               ( |  " --------------------------------------------------- | ) ) ).
+    given_the_source( VALUE #( ( |****************************************************| )
+                               ( |INTERFACE lif_abapmerge_marker. | )
+                               ( |ENDINTERFACE. | )
+                               ( |****************************************************| ) ) ).
 
     when_parse_requested( ).
 
