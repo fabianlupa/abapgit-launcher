@@ -1,10 +1,10 @@
 CLASS time_date_util_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT.
-  PUBLIC SECTION.
-    METHODS abapgit_valid_timestamp     FOR TESTING RAISING cx_static_check.
-    METHODS abapgit_invalid_timestamp   FOR TESTING RAISING cx_static_check.
-    METHODS abapgit_invalid_timestamp2  FOR TESTING RAISING cx_static_check.
-    METHODS abapmerge_valid_timestamp   FOR TESTING RAISING cx_static_check.
-    METHODS abapmerge_invalid_timestamp FOR TESTING RAISING cx_static_check.
+  PRIVATE SECTION.
+    METHODS abapgit_valid_timestamp      FOR TESTING RAISING cx_static_check.
+    METHODS abapgit_invalid_timestamp    FOR TESTING RAISING cx_static_check.
+    METHODS abapgit_invalid_timestamp2   FOR TESTING RAISING cx_static_check.
+    METHODS abapmerge_valid_timestamp    FOR TESTING RAISING cx_static_check.
+    METHODS abapmerge_invalid_timestamp  FOR TESTING RAISING cx_static_check.
     METHODS abapmerge_invalid_timestamp2 FOR TESTING RAISING cx_static_check.
 ENDCLASS.
 
@@ -110,13 +110,6 @@ ENDCLASS.
 
 CLASS version_analyzer_timestmp_test DEFINITION FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
   PUBLIC SECTION.
-    METHODS valid_timestamp      FOR TESTING RAISING cx_static_check.
-    METHODS missing_timestamp    FOR TESTING RAISING cx_static_check.
-    METHODS invalid_timestamp    FOR TESTING RAISING cx_static_check.
-    METHODS source_not_available FOR TESTING RAISING cx_static_check.
-    METHODS no_interface         FOR TESTING RAISING cx_static_check.
-    METHODS no_comment           FOR TESTING RAISING cx_static_check.
-
   PRIVATE SECTION.
     CONSTANTS dummy_program_name TYPE progname VALUE 'ZAGLAUNCHER_DUMMY'.
 
@@ -131,6 +124,13 @@ CLASS version_analyzer_timestmp_test DEFINITION FOR TESTING DURATION SHORT RISK 
             timestamp TYPE common_types=>abapmerge_timestamp,
             exception TYPE REF TO version_analyzer_error,
           END OF result.
+
+    METHODS valid_timestamp      FOR TESTING RAISING cx_static_check.
+    METHODS missing_timestamp    FOR TESTING RAISING cx_static_check.
+    METHODS invalid_timestamp    FOR TESTING RAISING cx_static_check.
+    METHODS source_not_available FOR TESTING RAISING cx_static_check.
+    METHODS no_interface         FOR TESTING RAISING cx_static_check.
+    METHODS no_comment           FOR TESTING RAISING cx_static_check.
 
     METHODS given_the_source           IMPORTING !source    TYPE string_table.
     METHODS given_missing_source       IMPORTING !exception TYPE REF TO source_not_available.
