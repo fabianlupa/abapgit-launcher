@@ -1,87 +1,22 @@
-CLASS time_date_util_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT.
-  PRIVATE SECTION.
-    METHODS abapgit_valid_timestamp      FOR TESTING RAISING cx_static_check.
-    METHODS abapgit_invalid_timestamp    FOR TESTING RAISING cx_static_check.
-    METHODS abapgit_invalid_timestamp2   FOR TESTING RAISING cx_static_check.
-    METHODS abapmerge_valid_timestamp    FOR TESTING RAISING cx_static_check.
-    METHODS abapmerge_invalid_timestamp  FOR TESTING RAISING cx_static_check.
-    METHODS abapmerge_invalid_timestamp2 FOR TESTING RAISING cx_static_check.
-ENDCLASS.
-
-
-CLASS time_date_util_test IMPLEMENTATION.
-  METHOD abapgit_valid_timestamp.
-    DATA timestamp TYPE timestampl VALUE '20230611100341.6641780'.
-
-    cl_abap_unit_assert=>assert_equals( exp = '20230611'
-                                        act = time_date_util=>parse_date_from_abapgit_ts( timestamp ) ).
-  ENDMETHOD.
-
-  METHOD abapgit_invalid_timestamp.
-    DATA timestamp TYPE timestampl VALUE '20231311100341.6641780'.
-
-    TRY.
-        time_date_util=>parse_date_from_abapgit_ts( timestamp ).
-        cl_abap_unit_assert=>fail( ).
-      CATCH time_date_error ##NO_HANDLER.
-    ENDTRY.
-  ENDMETHOD.
-
-  METHOD abapgit_invalid_timestamp2.
-    DATA timestamp TYPE timestampl VALUE IS INITIAL.
-
-    TRY.
-        time_date_util=>parse_date_from_abapgit_ts( timestamp ).
-        cl_abap_unit_assert=>fail( ).
-      CATCH time_date_error ##NO_HANDLER.
-    ENDTRY.
-  ENDMETHOD.
-
-  METHOD abapmerge_valid_timestamp.
-    TRY.
-        cl_abap_unit_assert=>assert_equals(
-            exp = '20230514'
-            act = time_date_util=>parse_date_from_abapmerge_ts( '2023-05-14T07:07:11.781Z' ) ).
-      CATCH time_date_error.
-        cl_abap_unit_assert=>fail( ).
-    ENDTRY.
-  ENDMETHOD.
-
-  METHOD abapmerge_invalid_timestamp.
-    TRY.
-        time_date_util=>parse_date_from_abapmerge_ts( 'First of April 2023' ).
-        cl_abap_unit_assert=>fail( ).
-      CATCH time_date_error ##NO_HANDLER.
-    ENDTRY.
-  ENDMETHOD.
-
-  METHOD abapmerge_invalid_timestamp2.
-    TRY.
-        time_date_util=>parse_date_from_abapmerge_ts( `` ).
-        cl_abap_unit_assert=>fail( ).
-      CATCH time_date_error ##NO_HANDLER.
-    ENDTRY.
-  ENDMETHOD.
-ENDCLASS.
-
+*"* use this source file for your ABAP unit test classes
 
 CLASS source_reader_double DEFINITION FOR TESTING.
   PUBLIC SECTION.
-    INTERFACES source_reader.
+    INTERFACES zagl_source_reader.
 
     DATA last_call_program_name TYPE progname READ-ONLY.
 
     METHODS return_source   IMPORTING !source    TYPE string_table.
-    METHODS raise_exception IMPORTING !exception TYPE REF TO source_not_available.
+    METHODS raise_exception IMPORTING !exception TYPE REF TO zagl_source_not_available.
 
   PRIVATE SECTION.
-    DATA next_raise_exception TYPE REF TO source_not_available.
+    DATA next_raise_exception TYPE REF TO zagl_source_not_available.
     DATA next_return_source   TYPE string_table.
 ENDCLASS.
 
 
 CLASS source_reader_double IMPLEMENTATION.
-  METHOD source_reader~read_report.
+  METHOD zagl_source_reader~read_report.
     last_call_program_name = program_name.
 
     IF next_return_source IS NOT INITIAL.
@@ -112,7 +47,7 @@ CLASS version_analyzer_timestmp_test DEFINITION FOR TESTING DURATION SHORT RISK 
   PRIVATE SECTION.
     CONSTANTS dummy_program_name TYPE progname VALUE 'ZAGLAUNCHER_DUMMY'.
 
-    DATA cut                  TYPE REF TO version_analyzer.
+    DATA cut                  TYPE REF TO zagl_version_analyzer.
     DATA source_reader_double TYPE REF TO source_reader_double.
 
     DATA: BEGIN OF given,
@@ -120,8 +55,8 @@ CLASS version_analyzer_timestmp_test DEFINITION FOR TESTING DURATION SHORT RISK 
             source       TYPE string_table,
           END OF given.
     DATA: BEGIN OF result,
-            timestamp TYPE common_types=>abapmerge_timestamp,
-            exception TYPE REF TO version_analyzer_error,
+            timestamp TYPE zagl_common_types=>abapmerge_timestamp,
+            exception TYPE REF TO zagl_version_analyzer_error,
           END OF result.
 
     METHODS valid_timestamp      FOR TESTING RAISING cx_static_check.
@@ -132,13 +67,13 @@ CLASS version_analyzer_timestmp_test DEFINITION FOR TESTING DURATION SHORT RISK 
     METHODS no_comment           FOR TESTING RAISING cx_static_check.
 
     METHODS given_the_source           IMPORTING !source    TYPE string_table.
-    METHODS given_missing_source       IMPORTING !exception TYPE REF TO source_not_available.
+    METHODS given_missing_source       IMPORTING !exception TYPE REF TO zagl_source_not_available.
     METHODS given_the_progam_name      IMPORTING !program   TYPE progname.
 
     METHODS when_parse_requested.
 
     METHODS then_requ_progam_should_be IMPORTING !program   TYPE progname.
-    METHODS then_timestamp_should_be   IMPORTING !timestamp TYPE common_types=>abapmerge_timestamp.
+    METHODS then_timestamp_should_be   IMPORTING !timestamp TYPE zagl_common_types=>abapmerge_timestamp.
     METHODS then_should_throw          IMPORTING !previous  TYPE REF TO cx_root OPTIONAL.
 
     METHODS setup.
@@ -195,7 +130,7 @@ CLASS version_analyzer_timestmp_test IMPLEMENTATION.
 
   METHOD source_not_available.
     given_the_progam_name( dummy_program_name ).
-    DATA(exception) = NEW source_not_available( ).
+    DATA(exception) = NEW zagl_source_not_available( ).
     given_missing_source( exception ).
 
     when_parse_requested( ).
@@ -271,7 +206,7 @@ CLASS version_analyzer_timestmp_test IMPLEMENTATION.
   METHOD when_parse_requested.
     TRY.
         result-timestamp = cut->get_abapmerge_timestamp( given-program_name ).
-      CATCH version_analyzer_error INTO result-exception ##NO_HANDLER.
+      CATCH zagl_version_analyzer_error INTO result-exception ##NO_HANDLER.
     ENDTRY.
   ENDMETHOD.
 
@@ -296,7 +231,7 @@ CLASS version_analyzer_timestmp_test IMPLEMENTATION.
 
   METHOD setup.
     source_reader_double = NEW #( ).
-    cut = NEW version_analyzer_impl( source_reader_double ).
+    cut = NEW zagl_version_analyzer_impl( source_reader_double ).
   ENDMETHOD.
 
   METHOD teardown.
