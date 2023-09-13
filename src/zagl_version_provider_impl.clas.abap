@@ -30,7 +30,7 @@ CLASS zagl_version_provider_impl IMPLEMENTATION.
                                       AND catalog~obj_name = program~name
       LEFT OUTER JOIN trdirt AS text ON text~name = program~name
                             AND text~sprsl = catalog~masterlang
-      WHERE ( program~name LIKE @zagl_common_types=>abapgit_sa_vers_prog_pattern OR
+      WHERE ( program~name LIKE @sa_version_pattern OR
               program~name = @zagl_common_types=>abapgit_dev_version_prog_name )
       ORDER BY program~name
       INTO CORRESPONDING FIELDS OF TABLE @result.

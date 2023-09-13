@@ -21,6 +21,8 @@ INTERFACE zagl_version_provider PUBLIC.
 
   "! Retrieve available abapGit versions in the system
   "!
-  "! @parameter result | Retrieved versions
-  METHODS retrieve_abapgit_versions RETURNING VALUE(result) TYPE version_data_tab.
+  "! @parameter sa_version_pattern | Standalone version pattern
+  "! @parameter result             | Retrieved versions
+  METHODS retrieve_abapgit_versions IMPORTING sa_version_pattern TYPE progname DEFAULT zagl_common_types=>abapgit_sa_vers_prog_pattern
+                                    RETURNING VALUE(result)      TYPE version_data_tab.
 ENDINTERFACE.

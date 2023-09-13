@@ -16,6 +16,18 @@
      <ENTRY>abapGit Launcher</ENTRY>
      <LENGTH>16</LENGTH>
     </item>
+    <item>
+     <ID>S</ID>
+     <KEY>P_JUMPB</KEY>
+     <ENTRY>Return Back to Launcher</ENTRY>
+     <LENGTH>31</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>P_SAPATT</KEY>
+     <ENTRY>SA Version Program Pattern</ENTRY>
+     <LENGTH>34</LENGTH>
+    </item>
    </TPOOL>
   </asx:values>
  </asx:abap>

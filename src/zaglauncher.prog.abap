@@ -1,11 +1,18 @@
 REPORT zaglauncher.
 
+SELECTION-SCREEN BEGIN OF SCREEN 0100.
+  PARAMETERS p_sapatt TYPE progname DEFAULT zagl_common_types=>abapgit_sa_vers_prog_pattern OBLIGATORY.
+  PARAMETERS p_jumpb TYPE abap_bool AS CHECKBOX DEFAULT abap_false.
+SELECTION-SCREEN END OF SCREEN 0100.
+
 CLASS internal_error DEFINITION INHERITING FROM cx_no_check.
 ENDCLASS.
 
 
 CLASS main DEFINITION.
   PUBLIC SECTION.
+    CLASS-METHODS initialization.
+
     METHODS constructor IMPORTING version_provider TYPE REF TO zagl_version_provider
                                   version_analyzer TYPE REF TO zagl_version_analyzer.
 
@@ -43,6 +50,18 @@ ENDCLASS.
 
 
 CLASS main IMPLEMENTATION.
+  METHOD initialization.
+    CALL FUNCTION 'RS_SUPPORT_SELECTIONS'
+      EXPORTING  report               = sy-repid
+                 variant              = 'DEFAULT'
+      EXCEPTIONS variant_not_existent = 1
+                 variant_obsolete     = 2
+                 OTHERS               = 3.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+  ENDMETHOD.
+
   METHOD constructor.
     me->version_provider = version_provider.
     me->version_analyzer = version_analyzer.
@@ -54,7 +73,7 @@ CLASS main IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD retrieve_versions.
-    output_list = CORRESPONDING #( version_provider->retrieve_abapgit_versions( ) ).
+    output_list = CORRESPONDING #( version_provider->retrieve_abapgit_versions( p_sapatt ) ).
 
     LOOP AT output_list ASSIGNING FIELD-SYMBOL(<version>).
       CASE <version>-flavor.
@@ -258,7 +277,7 @@ CLASS main IMPLEMENTATION.
                                                   FOR line IN output_list
                                                   WHERE ( flavor = zagl_version_provider=>flavors-standalone_version )
                                                   NEXT i = i + 1 ) NUMBER = USER }| &&
-                                     | (with pattern { zagl_common_types=>abapgit_sa_vers_prog_pattern })| ).
+                                     | (with pattern { p_sapatt })| ).
           alv->set_top_of_list( top ).
 
           SET HANDLER on_double_click FOR alv->get_event( ).
@@ -295,9 +314,16 @@ CLASS main IMPLEMENTATION.
   METHOD execute_report.
     ASSERT program_name CP 'ZABAPGIT*'.
     SET PARAMETER ID 'ZAGLAUNCHER' FIELD program_name.
-    SUBMIT (program_name).
+    IF p_jumpb = abap_true.
+      SUBMIT (program_name) AND RETURN.
+    ELSE.
+      SUBMIT (program_name).
+    ENDIF.
   ENDMETHOD.
 ENDCLASS.
+
+INITIALIZATION.
+  main=>initialization( ).
 
 START-OF-SELECTION.
   NEW main( version_provider = NEW zagl_version_provider_impl( )
