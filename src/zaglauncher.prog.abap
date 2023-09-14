@@ -1,7 +1,9 @@
 REPORT zaglauncher.
 
+TABLES progdir.
+
 SELECTION-SCREEN BEGIN OF SCREEN 0100.
-  PARAMETERS p_sapatt TYPE progname DEFAULT zagl_common_types=>abapgit_sa_vers_prog_pattern OBLIGATORY.
+  SELECT-OPTIONS s_pname FOR progdir-name OBLIGATORY.
   PARAMETERS p_jumpb TYPE abap_bool AS CHECKBOX DEFAULT abap_false.
 SELECTION-SCREEN END OF SCREEN 0100.
 
@@ -22,6 +24,7 @@ CLASS main DEFINITION.
     TYPES: BEGIN OF output.
              INCLUDE TYPE zagl_version_provider=>version_data AS version_data.
     TYPES:   abapgit_version        TYPE zagl_common_types=>abapgit_version,
+             flavor                 TYPE zagl_version_analyzer=>flavor,
              abapmerge_timestamp    TYPE zagl_common_types=>abapmerge_timestamp,
              abapmerge_date         TYPE d,
              deserialized_timestamp TYPE timestampl,
@@ -51,6 +54,8 @@ ENDCLASS.
 
 CLASS main IMPLEMENTATION.
   METHOD initialization.
+    s_pname[] = zagl_common_types=>default_program_name_filter.
+
     CALL FUNCTION 'RS_SUPPORT_SELECTIONS'
       EXPORTING  report               = sy-repid
                  variant              = 'DEFAULT'
@@ -73,61 +78,59 @@ CLASS main IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD retrieve_versions.
-    output_list = CORRESPONDING #( version_provider->retrieve_abapgit_versions( p_sapatt ) ).
+    output_list = CORRESPONDING #( version_provider->retrieve_abapgit_versions( s_pname[] ) ).
 
     LOOP AT output_list ASSIGNING FIELD-SYMBOL(<version>).
-      CASE <version>-flavor.
-        WHEN zagl_version_provider=>flavors-developer_version.
-          <version>-sort_priority = 1.
-          <version>-flavor_icon   = icon_oo_class.
+      TRY.
+          DATA(analysis_result) = version_analyzer->analyze_program( <version>-program_name ).
+          <version>-abapgit_version = analysis_result-version.
+          IF <version>-abapgit_version IS INITIAL.
+            <version>-abapgit_version = unknown_value.
+          ENDIF.
+          <version>-flavor = analysis_result-flavor.
 
-          TRY.
-              <version>-abapgit_version = version_analyzer->get_dev_version_version( ).
-            CATCH zagl_version_analyzer_error.
-              <version>-abapgit_version = unknown_value.
-          ENDTRY.
+          CASE <version>-flavor.
+            WHEN zagl_version_analyzer=>flavors-developer_version.
+              <version>-sort_priority          = 1.
+              <version>-flavor_icon            = icon_oo_class.
 
-          TRY.
-              DATA(dev_version_admin_data) = version_analyzer->get_dev_version_admin_data( ).
-              <version>-deserialized_timestamp = dev_version_admin_data-deserialized_at.
-              <version>-deserialized_by        = dev_version_admin_data-deserialized_by.
+              <version>-deserialized_timestamp = analysis_result-developer_version_details-deserialized_at.
+              <version>-deserialized_by        = analysis_result-developer_version_details-deserialized_by.
               <version>-last_updated_by        = <version>-deserialized_by.
               TRY.
                   <version>-deserialized_date = zagl_time_date_util=>parse_date_from_abapgit_ts(
-                                                    dev_version_admin_data-deserialized_at ).
+                                                    analysis_result-developer_version_details-deserialized_at ).
                   <version>-last_updated_on   = <version>-deserialized_date.
                 CATCH zagl_time_date_error ##NO_HANDLER.
               ENDTRY.
-            CATCH zagl_version_analyzer_error.
-              <version>-deserialized_by = unknown_value.
-              <version>-last_updated_by = unknown_value.
-          ENDTRY.
+              IF <version>-deserialized_by IS INITIAL.
+                <version>-deserialized_by = unknown_value.
+              ENDIF.
+              IF <version>-last_updated_by IS INITIAL.
+                <version>-last_updated_by = unknown_value.
+              ENDIF.
 
-        WHEN zagl_version_provider=>flavors-standalone_version.
-          <version>-sort_priority = 2.
-          <version>-flavor_icon   = icon_abap_local.
+            WHEN zagl_version_analyzer=>flavors-standalone_version.
+              <version>-sort_priority       = 2.
+              <version>-flavor_icon         = icon_abap_local.
 
-          TRY.
-              <version>-abapgit_version = version_analyzer->get_sa_version_version( <version>-program_name ).
-            CATCH zagl_version_analyzer_error.
-              <version>-abapgit_version = unknown_value.
-          ENDTRY.
-
-          <version>-last_updated_by = <version>-changed_by.
-          <version>-last_updated_on = <version>-changed_on.
-
-          TRY.
-              <version>-abapmerge_timestamp = version_analyzer->get_abapmerge_timestamp( <version>-program_name ).
-              TRY.
-                  <version>-abapmerge_date  = zagl_time_date_util=>parse_date_from_abapmerge_ts(
-                                                  <version>-abapmerge_timestamp ).
-                  <version>-last_updated_on = <version>-abapmerge_date.
-                CATCH zagl_time_date_error ##NO_HANDLER.
-              ENDTRY.
-            CATCH zagl_version_analyzer_error.
-              <version>-abapmerge_timestamp = unknown_value.
-          ENDTRY.
-      ENDCASE.
+              <version>-last_updated_by     = <version>-changed_by.
+              <version>-last_updated_on     = <version>-changed_on.
+              <version>-abapmerge_timestamp = analysis_result-standalone_version_details-abapmerge_timestamp.
+              IF <version>-abapmerge_timestamp IS INITIAL.
+                <version>-abapmerge_timestamp = unknown_value.
+              ELSE.
+                TRY.
+                    <version>-abapmerge_date  = zagl_time_date_util=>parse_date_from_abapmerge_ts(
+                                                    <version>-abapmerge_timestamp ).
+                    <version>-last_updated_on = <version>-abapmerge_date.
+                  CATCH zagl_time_date_error ##NO_HANDLER.
+                ENDTRY.
+              ENDIF.
+          ENDCASE.
+        CATCH zagl_version_analyzer_error.
+          DELETE output_list USING KEY loop_key.
+      ENDTRY.
     ENDLOOP.
 
     SORT output_list BY sort_priority ASCENDING
@@ -265,7 +268,7 @@ CLASS main IMPLEMENTATION.
               row    = 1
               column = 2
               text   = COND #( WHEN line_exists( output_list[
-                                                     flavor = zagl_version_provider=>flavors-developer_version ] )
+                                                     flavor = zagl_version_analyzer=>flavors-developer_version ] )
                                THEN 'Yes'
                                ELSE 'No' ) ).
           top->create_label( row    = 2
@@ -275,9 +278,8 @@ CLASS main IMPLEMENTATION.
                             column = 2
                             text   = |{ REDUCE i( INIT i = 0
                                                   FOR line IN output_list
-                                                  WHERE ( flavor = zagl_version_provider=>flavors-standalone_version )
-                                                  NEXT i = i + 1 ) NUMBER = USER }| &&
-                                     | (with pattern { p_sapatt })| ).
+                                                  WHERE ( flavor = zagl_version_analyzer=>flavors-standalone_version )
+                                                  NEXT i = i + 1 ) NUMBER = USER }| ).
           alv->set_top_of_list( top ).
 
           SET HANDLER on_double_click FOR alv->get_event( ).
@@ -312,7 +314,7 @@ CLASS main IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD execute_report.
-    ASSERT program_name CP 'ZABAPGIT*'.
+    ASSERT program_name CP zagl_common_types=>default_dev_version_prog_name && '*'.
     SET PARAMETER ID 'ZAGLAUNCHER' FIELD program_name.
     IF p_jumpb = abap_true.
       SUBMIT (program_name) AND RETURN.

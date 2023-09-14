@@ -30,6 +30,32 @@ CLASS zagl_version_analyzer_impl IMPLEMENTATION.
     me->source_reader = source_reader.
   ENDMETHOD.
 
+  METHOD zagl_version_analyzer~analyze_program.
+    " 1. Program name is ZABAPGIT and version interface does exist? -> developer version
+    IF program_name = 'ZABAPGIT'.
+      TRY.
+          result-version = zagl_version_analyzer~get_dev_version_version( ).
+          result-flavor  = zagl_version_analyzer=>flavors-developer_version.
+          TRY.
+              result-developer_version_details = zagl_version_analyzer~get_dev_version_admin_data( ).
+            CATCH zagl_version_analyzer_error ##NO_HANDLER.
+          ENDTRY.
+          RETURN.
+        CATCH zagl_version_analyzer_error ##NO_HANDLER.
+          " Fall through to 2.
+      ENDTRY.
+    ENDIF.
+
+    " 2. Everything else should be standalone version
+    result-flavor  = zagl_version_analyzer=>flavors-standalone_version.
+    result-version = zagl_version_analyzer~get_sa_version_version( program_name ).
+    TRY.
+        result-standalone_version_details-abapmerge_timestamp =
+            zagl_version_analyzer~get_abapmerge_timestamp( program_name ).
+      CATCH zagl_version_analyzer_error ##NO_HANDLER.
+    ENDTRY.
+  ENDMETHOD.
+
   METHOD zagl_version_analyzer~get_dev_version_version.
     result = get_version_by_identifier( abapgit_version_constant ).
   ENDMETHOD.
@@ -55,7 +81,8 @@ CLASS zagl_version_analyzer_impl IMPLEMENTATION.
         ENDIF.
       CATCH cx_sy_conversion_error INTO DATA(conversion_error).
         RAISE EXCEPTION TYPE zagl_version_analyzer_error
-          EXPORTING previous = conversion_error.
+          EXPORTING
+            previous = conversion_error.
     ENDTRY.
   ENDMETHOD.
 
@@ -99,7 +126,8 @@ CLASS zagl_version_analyzer_impl IMPLEMENTATION.
 
             CATCH zagl_source_not_available INTO DATA(source_not_available).
               RAISE EXCEPTION TYPE zagl_version_analyzer_error
-                EXPORTING previous = source_not_available.
+                EXPORTING
+                  previous = source_not_available.
           ENDTRY.
       ENDCASE.
 
@@ -126,17 +154,20 @@ CLASS zagl_version_analyzer_impl IMPLEMENTATION.
         SELECT SINGLE devclass
           FROM tadir
           WHERE object = 'PROG'
-            AND obj_name = @zagl_common_types=>abapgit_dev_version_prog_name
+            AND obj_name = @program_name
           INTO @DATA(package).
         IF sy-subrc <> 0 OR package IS INITIAL.
           RAISE EXCEPTION TYPE zagl_version_analyzer_error.
         ENDIF.
 
         CALL METHOD ('ZCL_ABAPGIT_REPO_SRV')=>get_instance
-          RECEIVING ri_srv = repo_srv.
+          RECEIVING
+            ri_srv = repo_srv.
         CALL METHOD repo_srv->('ZIF_ABAPGIT_REPO_SRV~GET_REPO_FROM_PACKAGE')
-          EXPORTING iv_package = package
-          IMPORTING ei_repo    = <repo>.
+          EXPORTING
+            iv_package = package
+          IMPORTING
+            ei_repo    = <repo>.
 
         repo = <repo>.
         ASSIGN repo->('ZIF_ABAPGIT_REPO~MS_DATA') TO FIELD-SYMBOL(<repo_data>).
@@ -147,7 +178,8 @@ CLASS zagl_version_analyzer_impl IMPLEMENTATION.
         result = CORRESPONDING #( <repo_data> ).
       CATCH cx_root INTO DATA(exception).
         RAISE EXCEPTION TYPE zagl_version_analyzer_error
-          EXPORTING previous = exception.
+          EXPORTING
+            previous = exception.
     ENDTRY.
   ENDMETHOD.
 ENDCLASS.
