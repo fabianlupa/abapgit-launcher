@@ -17,3 +17,7 @@ By default the following program names / patterns are accounted for. This can be
 ## Installation
 
 Install using [abapGit](https://abapgit.org) as an [online](https://docs.abapgit.org/user-guide/projects/online/install.html) or [offline](https://docs.abapgit.org/user-guide/projects/offline/install.html) repository with the default settings. The target package (for example `ZAGLAUNCHER`) cannot be a subpackage of the abapGit developer version installation.
+
+## Requirements
+
+\>= ABAP 7.40
